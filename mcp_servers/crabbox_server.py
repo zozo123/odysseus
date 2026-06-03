@@ -126,10 +126,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             "Odysseus's environment (.env). Mint one with: islo api-key create <name>."
         ))]
 
+    # --no-sync: the agent's box is a CLEAN sandbox. We deliberately do NOT rsync
+    # the Odysseus host's working tree into it — the command is self-contained
+    # (clone/install what it needs). This also means crabbox doesn't require the
+    # host process to be running inside a git repo.
     argv = [
         crabbox, "run",
         "--provider", provider,
         "--islo-image", image,
+        "--no-sync",
         "--", "bash", "-lc", command,
     ]
 
