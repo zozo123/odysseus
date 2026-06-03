@@ -63,6 +63,32 @@ require_bin() {
   command -v "$1" >/dev/null 2>&1 || { c_red "missing '$1' — $2"; exit 1; }
 }
 
+# Install the real openclaw crabbox if it isn't on PATH, the way https://crabbox.sh
+# documents it: Homebrew tap, or a GoReleaser archive from GitHub releases.
+ensure_crabbox() {
+  command -v crabbox >/dev/null 2>&1 && return 0
+  c_blue "▶ crabbox not found — installing openclaw/crabbox (see https://crabbox.sh) ..."
+  if command -v brew >/dev/null 2>&1; then
+    brew install openclaw/tap/crabbox && return 0
+  fi
+  # No Homebrew: grab the GoReleaser archive for this OS/arch.
+  local os arch tag ver url tmp
+  case "$(uname -s)" in Darwin) os=darwin;; Linux) os=linux;; *) c_red "unsupported OS for auto-install; see https://crabbox.sh"; exit 1;; esac
+  case "$(uname -m)" in x86_64|amd64) arch=amd64;; arm64|aarch64) arch=arm64;; *) c_red "unsupported arch $(uname -m)"; exit 1;; esac
+  tag="$(curl -fsSL https://api.github.com/repos/openclaw/crabbox/releases/latest | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+  ver="${tag#v}"
+  url="https://github.com/openclaw/crabbox/releases/download/${tag}/crabbox_${ver}_${os}_${arch}.tar.gz"
+  tmp="$(mktemp -d)"
+  c_blue "  ↓ ${url}"
+  curl -fsSL "$url" | tar -xz -C "$tmp" || { c_red "download failed — install manually: https://crabbox.sh"; exit 1; }
+  mkdir -p "${CRABBOX_INSTALL_DIR:-$HOME/.local/bin}"
+  install -m 0755 "$tmp/crabbox" "${CRABBOX_INSTALL_DIR:-$HOME/.local/bin}/crabbox"
+  export PATH="${CRABBOX_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
+  rm -rf "$tmp"
+  command -v crabbox >/dev/null 2>&1 || { c_red "crabbox still not on PATH — add ${CRABBOX_INSTALL_DIR:-$HOME/.local/bin} to PATH"; exit 1; }
+  c_green "✓ crabbox $(crabbox --version 2>/dev/null) installed"
+}
+
 # Bootstrap commands that turn a bare python:3.12-slim box into a working
 # Odysseus install. Kept as a single string so it runs identically under
 # crabbox (synced tree) and islo (cloned repo).
@@ -80,7 +106,7 @@ SH
 
 cmd_test() {
   require_key
-  require_bin crabbox "install with: brew install openclaw/tap/crabbox"
+  ensure_crabbox
   c_blue "▶ warming an islo.dev box via crabbox, syncing this checkout, running the suite…"
   # shellcheck disable=SC2086
   crabbox run \
@@ -96,7 +122,7 @@ python -m pytest $TESTS"
 
 cmd_shell() {
   require_key
-  require_bin crabbox "install with: brew install openclaw/tap/crabbox"
+  ensure_crabbox
   c_blue "▶ opening an interactive shell on a fresh islo.dev box (synced from this checkout)…"
   crabbox run --provider islo --islo-image "$IMAGE" --keep -- bash -lc "$(bootstrap); exec bash"
 }

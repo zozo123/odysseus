@@ -52,13 +52,9 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install crabbox
-        if: steps.guard.outputs.run == 'true'
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/openclaw/crabbox/main/install.sh | bash || \
-          (go install github.com/openclaw/crabbox/cmd/crabbox@latest && echo "$HOME/go/bin" >> "$GITHUB_PATH")
-
       - name: Run Odysseus suite on a fresh islo.dev box
+        # crabbox.sh self-installs the real openclaw crabbox (https://crabbox.sh)
+        # when it's missing — no brew on the runner, so it pulls the linux archive.
         if: steps.guard.outputs.run == 'true'
         env:
           ISLO_API_KEY: ${{ secrets.ISLO_API_KEY }}

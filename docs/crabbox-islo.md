@@ -31,9 +31,14 @@ the repo straight from GitHub, keeps the box alive, and hands you a share URL.
 # 1. an islo.dev API key
 islo api-key create odysseus-demo --output-file islo.key
 export ISLO_API_KEY=$(cat islo.key)
+```
 
-# 2. crabbox (only needed for test/shell)
-brew install openclaw/tap/crabbox
+That's it. `crabbox.sh` **auto-installs the real [openclaw crabbox](https://crabbox.sh)**
+on first use if it isn't already on your PATH (Homebrew tap, or the GoReleaser
+archive for your OS/arch). To install it yourself ahead of time:
+
+```bash
+brew install openclaw/tap/crabbox    # or grab an archive from the releases page
 ```
 
 ## Knobs
