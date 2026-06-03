@@ -104,13 +104,17 @@ cmd_shell() {
 cmd_serve() {
   require_key
   require_bin islo "install the islo.dev CLI: https://islo.dev"
+  local repo_name="${REPO_SLUG##*/}"
   c_blue "▶ booting Odysseus on a persistent islo.dev sandbox from github://${REPO_SLUG} ..."
+  # --user root: islo's default user can't apt-get. We cd into the repo islo
+  # cloned at /workspace/<repo> before running the bootstrap.
   islo use "$SANDBOX" \
-    --no-config \
+    --no-config --run-as-user root \
     --source "github://$REPO_SLUG:$REPO_BRANCH" \
     --image "$IMAGE" --cpu "$VCPUS" --memory "$MEMORY_MB" --disk "$DISK_GB" \
     --env "APP_BIND=0.0.0.0" --env "APP_PORT=$PORT" \
-    -- bash -c "$(bootstrap)
+    -- bash -c "cd /workspace/$repo_name || cd \$(find /workspace -maxdepth 2 -name requirements.txt -printf '%h' -quit)
+$(bootstrap)
 echo '▶ launching uvicorn on 0.0.0.0:$PORT (detached)'
 setsid -f python -m uvicorn app:app --host 0.0.0.0 --port $PORT >/workspace/odysseus.log 2>&1
 sleep 4 && echo 'started — see /workspace/odysseus.log'"
