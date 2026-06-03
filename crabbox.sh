@@ -106,6 +106,7 @@ cmd_serve() {
   require_bin islo "install the islo.dev CLI: https://islo.dev"
   c_blue "▶ booting Odysseus on a persistent islo.dev sandbox from github://${REPO_SLUG} ..."
   islo use "$SANDBOX" \
+    --no-config \
     --source "github://$REPO_SLUG:$REPO_BRANCH" \
     --image "$IMAGE" --cpu "$VCPUS" --memory "$MEMORY_MB" --disk "$DISK_GB" \
     --env "APP_BIND=0.0.0.0" --env "APP_PORT=$PORT" \
