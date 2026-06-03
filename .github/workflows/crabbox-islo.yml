@@ -1,4 +1,4 @@
-name: crabbox · islo.dev
+name: crabbox - islo.dev
 
 # Run Odysseus's test suite on a fresh islo.dev microVM via crabbox.
 # This is the CI mirror of `./crabbox.sh test` — instead of a GitHub-hosted

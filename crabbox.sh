@@ -67,7 +67,7 @@ require_bin() {
 # documents it: Homebrew tap, or a GoReleaser archive from GitHub releases.
 ensure_crabbox() {
   command -v crabbox >/dev/null 2>&1 && return 0
-  c_blue "▶ crabbox not found — installing openclaw/crabbox (see https://crabbox.sh) ..."
+  c_blue "> crabbox not found — installing openclaw/crabbox (see https://crabbox.sh) ..."
   if command -v brew >/dev/null 2>&1; then
     brew install openclaw/tap/crabbox && return 0
   fi
@@ -79,14 +79,14 @@ ensure_crabbox() {
   ver="${tag#v}"
   url="https://github.com/openclaw/crabbox/releases/download/${tag}/crabbox_${ver}_${os}_${arch}.tar.gz"
   tmp="$(mktemp -d)"
-  c_blue "  ↓ ${url}"
+  c_blue "  downloading ${url}"
   curl -fsSL "$url" | tar -xz -C "$tmp" || { c_red "download failed — install manually: https://crabbox.sh"; exit 1; }
   mkdir -p "${CRABBOX_INSTALL_DIR:-$HOME/.local/bin}"
   install -m 0755 "$tmp/crabbox" "${CRABBOX_INSTALL_DIR:-$HOME/.local/bin}/crabbox"
   export PATH="${CRABBOX_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
   rm -rf "$tmp"
   command -v crabbox >/dev/null 2>&1 || { c_red "crabbox still not on PATH — add ${CRABBOX_INSTALL_DIR:-$HOME/.local/bin} to PATH"; exit 1; }
-  c_green "✓ crabbox $(crabbox --version 2>/dev/null) installed"
+  c_green "OK crabbox $(crabbox --version 2>/dev/null) installed"
 }
 
 # Bootstrap commands that turn a bare python:3.12-slim box into a working
@@ -95,11 +95,11 @@ ensure_crabbox() {
 bootstrap() {
   cat <<'SH'
 set -e
-echo "▶ system deps"
+echo "> system deps"
 apt-get update -qq && apt-get install -y -qq --no-install-recommends git build-essential >/dev/null
-echo "▶ python deps (this is the slow part)"
+echo "> python deps (this is the slow part)"
 pip install --no-cache-dir -q -r requirements.txt
-echo "▶ first-time setup"
+echo "> first-time setup"
 python setup.py
 SH
 }
@@ -107,7 +107,7 @@ SH
 cmd_test() {
   require_key
   ensure_crabbox
-  c_blue "▶ warming an islo.dev box via crabbox, syncing this checkout, running the suite…"
+  c_blue "> warming an islo.dev box via crabbox, syncing this checkout, running the suite..."
   # shellcheck disable=SC2086
   crabbox run \
     --provider islo \
@@ -116,14 +116,14 @@ cmd_test() {
     --islo-memory-mb "$MEMORY_MB" \
     --islo-disk-gb "$DISK_GB" \
     -- bash -c "$(bootstrap)
-echo '▶ test suite'
+echo '> test suite'
 python -m pytest $TESTS"
 }
 
 cmd_shell() {
   require_key
   ensure_crabbox
-  c_blue "▶ opening an interactive shell on a fresh islo.dev box (synced from this checkout)…"
+  c_blue "> opening an interactive shell on a fresh islo.dev box (synced from this checkout)..."
   crabbox run --provider islo --islo-image "$IMAGE" --keep -- bash -lc "$(bootstrap); exec bash"
 }
 
@@ -131,7 +131,7 @@ cmd_serve() {
   require_key
   require_bin islo "install the islo.dev CLI: https://islo.dev"
   local repo_name="${REPO_SLUG##*/}"
-  c_blue "▶ booting Odysseus on a persistent islo.dev sandbox from github://${REPO_SLUG} ..."
+  c_blue "> booting Odysseus on a persistent islo.dev sandbox from github://${REPO_SLUG} ..."
   # --user root: islo's default user can't apt-get. We cd into the repo islo
   # cloned at /workspace/<repo> before running the bootstrap.
   # Install + setup + uvicorn run *fully detached* on the box (setsid -f), so this
@@ -150,9 +150,9 @@ setsid -f bash -c '
   python -m uvicorn app:app --host 0.0.0.0 --port $PORT >>/workspace/boot.log 2>&1
 ' </dev/null >/dev/null 2>&1
 echo 'boot kicked off — installing + launching in background (see /workspace/boot.log)'"
-  c_blue "▶ creating a public share URL for port ${PORT} ..."
+  c_blue "> creating a public share URL for port ${PORT} ..."
   islo share "$SANDBOX" "$PORT" --ttl 24h
-  c_green "✓ Share URL is live above. Odysseus finishes installing on the box (~90s);"
+  c_green "OK Share URL is live above. Odysseus finishes installing on the box (~90s);"
   c_green "  the URL starts serving once uvicorn binds. Watch progress:"
   c_green "    islo use $SANDBOX --no-config --run-as-user root -- tail -f /workspace/boot.log"
   c_green "  First login: admin password is in that log (grep -i password)."
