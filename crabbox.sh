@@ -108,21 +108,28 @@ cmd_serve() {
   c_blue "▶ booting Odysseus on a persistent islo.dev sandbox from github://${REPO_SLUG} ..."
   # --user root: islo's default user can't apt-get. We cd into the repo islo
   # cloned at /workspace/<repo> before running the bootstrap.
+  # Install + setup + uvicorn run *fully detached* on the box (setsid -f), so this
+  # foreground exec returns in seconds. Running the ~80s pip install inline would
+  # keep a synchronous exec stream open long enough for it to drop ("Stream error").
   islo use "$SANDBOX" \
     --no-config --run-as-user root \
     --source "github://$REPO_SLUG:$REPO_BRANCH" \
     --image "$IMAGE" --cpu "$VCPUS" --memory "$MEMORY_MB" --disk "$DISK_GB" \
     --env "APP_BIND=0.0.0.0" --env "APP_PORT=$PORT" \
-    -- bash -c "cd /workspace/$repo_name || cd \$(find /workspace -maxdepth 2 -name requirements.txt -printf '%h' -quit)
-$(bootstrap)
-echo '▶ launching uvicorn on 0.0.0.0:$PORT (detached)'
-setsid -f python -m uvicorn app:app --host 0.0.0.0 --port $PORT >/workspace/odysseus.log 2>&1
-sleep 4 && echo 'started — see /workspace/odysseus.log'"
+    -- bash -c "cd /workspace/$repo_name 2>/dev/null || cd \$(find /workspace -maxdepth 2 -name requirements.txt -printf '%h' -quit)
+setsid -f bash -c '
+  apt-get update -qq && apt-get install -y -qq --no-install-recommends git build-essential >/dev/null 2>&1
+  pip install --no-cache-dir -q -r requirements.txt >/workspace/boot.log 2>&1
+  python setup.py >>/workspace/boot.log 2>&1
+  python -m uvicorn app:app --host 0.0.0.0 --port $PORT >>/workspace/boot.log 2>&1
+' </dev/null >/dev/null 2>&1
+echo 'boot kicked off — installing + launching in background (see /workspace/boot.log)'"
   c_blue "▶ creating a public share URL for port ${PORT} ..."
   islo share "$SANDBOX" "$PORT" --ttl 24h
-  c_green "✓ Odysseus is live. Open the share URL above."
-  c_green "  First login: the admin password is printed in the sandbox log:"
-  c_green "    islo ssh $SANDBOX -- 'grep -i password /workspace/odysseus.log'"
+  c_green "✓ Share URL is live above. Odysseus finishes installing on the box (~90s);"
+  c_green "  the URL starts serving once uvicorn binds. Watch progress:"
+  c_green "    islo use $SANDBOX --no-config --run-as-user root -- tail -f /workspace/boot.log"
+  c_green "  First login: admin password is in that log (grep -i password)."
   c_green "  Tear down when done:  islo rm $SANDBOX"
 }
 
