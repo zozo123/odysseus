@@ -104,7 +104,7 @@ cmd_shell() {
 cmd_serve() {
   require_key
   require_bin islo "install the islo.dev CLI: https://islo.dev"
-  c_blue "▶ booting Odysseus on a persistent islo.dev sandbox from github://$REPO_SLUG…"
+  c_blue "▶ booting Odysseus on a persistent islo.dev sandbox from github://${REPO_SLUG} ..."
   islo use "$SANDBOX" \
     --source "github://$REPO_SLUG:$REPO_BRANCH" \
     --image "$IMAGE" --cpu "$VCPUS" --memory "$MEMORY_MB" --disk "$DISK_GB" \
@@ -113,7 +113,7 @@ cmd_serve() {
 echo '▶ launching uvicorn on 0.0.0.0:$PORT (detached)'
 setsid -f python -m uvicorn app:app --host 0.0.0.0 --port $PORT >/workspace/odysseus.log 2>&1
 sleep 4 && echo 'started — see /workspace/odysseus.log'"
-  c_blue "▶ creating a public share URL for port $PORT…"
+  c_blue "▶ creating a public share URL for port ${PORT} ..."
   islo share "$SANDBOX" "$PORT" --ttl 24h
   c_green "✓ Odysseus is live. Open the share URL above."
   c_green "  First login: the admin password is printed in the sandbox log:"
